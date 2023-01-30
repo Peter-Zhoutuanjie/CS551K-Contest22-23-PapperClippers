@@ -1,5 +1,7 @@
 // Agent bob in project MAPC2018.mas2j
-
+{ include("strategy/identification.asl", identification) }
+{ include("strategy/exploration.asl", exploration) }
+{ include("strategy/task.asl", task) }
 /* Initial beliefs and rules */       
 location(0,0).
 exploration_mode(on).
