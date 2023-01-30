@@ -1,0 +1,42 @@
+//----------
++!move(RandomNumber): location(X,Y) & lastActionParams([e])<-
+	+location(X+1,Y);       
+	move(e);
+	.print("agent keep move east").
++!move(RandomNumber): (RandomNumber>=0.25 & RandomNumber<0.5) & location(X,Y) & lastActionParams([e]) & lastActionResult(failed_path)<-
+	+location(X+1,Y);       
+	.print("agent action failed !!!!!!!!!!!!!!!!");
+	move(s);
+	.print("agent move random").
++!move(RandomNumber): (RandomNumber>=0.25 & RandomNumber<0.5) & location(X,Y) <-
+	+location(X+1,Y);       
+	move(e);
+	.print("agent move east").
+//----------
++!move(RandomNumber): location(X,Y) & lastActionParams([s])<-
+	+location(X,Y-1);              
+	move(s);
+	.print("agent keep move south").
++!move(RandomNumber): (RandomNumber>=0.5 & RandomNumber<0.75) & location(X,Y) & lastActionParams([s]) & lastActionResult(failed_path)<-
+	+location(X,Y-1);        
+	.print("agent action failed !!!!!!!!!!!!!!!!");
+	move(w);
+	.print("agent move random").
++!move(RandomNumber): (RandomNumber>=0.5 & RandomNumber<0.75) & location(X,Y)<-
+	+location(X,Y-1);        
+	move(s);
+	.print("agent move south").
+//----------
++!move(RandomNumber): location(X,Y) & lastActionParams([w])<-
+	+location(X-1,Y); 
+	move(w);
+	.print("agent keep move west").
++!move(RandomNumber): (RandomNumber>=0.75 & RandomNumber<1) & location(X,Y) & lastActionParams([w]) & lastActionResult(failed_path)<-
+	+location(X-1,Y); 
+	.print("agent action failed !!!!!!!!!!!!!!!!");
+	move(n);
+	.print("agent move random").
++!move(RandomNumber): (RandomNumber>=0.75 & RandomNumber<1) & location(X,Y)<-
+	+location(X-1,Y); 
+	move(w);
+	.print("agent move west").
