@@ -1,0 +1,38 @@
+// agent explore the world
++!explore(RandomNumber):true<-
+	!move(RandomNumber);
+	+exploration_mode(yes);
+	.print("agent explore the world").
+// agent stop explore the world
+//-!explore(RandomNumber):true<-
+//	-+exploration_mode(no);
+//	.print("agent stop explore the world").
++lastActionParams(LA): true<-
+	+lastActionParams(LA).
++lastActionResult(Result): not (Result == failed_path) <-
+	.print("lastActionResult==========",Result).
++lastActionResult(Result):(Result == failed_path) & lastActionParams([n])<-
+	.print("turn east");
+	move(e).
++lastActionResult(Result):(Result == failed_path) & lastActionParams([e])<-
+	.print("turn south");
+	move(s).
++lastActionResult(Result):(Result == failed_path) & lastActionParams([s])<-
+	.print("turn west");
+	move(w).
++lastActionResult(Result):(Result == failed_path) & lastActionParams([w])<-
+	.print("turn north");
+	move(n).
++!move(RandomNumber): lastActionParams([n])<-
+	+location(X,Y+1);
+	move(n);
+	.print("agent keep move north").
++!move(RandomNumber): lastActionParams([n]) & lastActionResult(failed_path)<-
+	+location(X,Y+1);
+	.print("agent action failed !!!!!!!!!!!!!!!!");
+	move(e);
+	.print("agent move random").
++!move(RandomNumber): true <-
+	+location(X,Y+1);
+	move(n);
+	.print("agent move north").

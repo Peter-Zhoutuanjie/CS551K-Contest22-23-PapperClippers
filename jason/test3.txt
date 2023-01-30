@@ -1,0 +1,87 @@
++!move_to(X,Y): (X < -1)<-
+	move(w).
++!move_to(X,Y): (X > 1)<-
+	move(e).
++!move_to(X,Y): (Y < 0) & ((X == 1) | (X == -1)) <-
+	move(n).
++!move_to(X,Y): (Y > 0) & ((X == 1) | (X == -1)) <-
+	move(s).
++!move_to(X,Y): (Y < -1)<-
+	move(s).
++!move_to(X,Y): (Y > 1)<-
+	move(n).
++!move_to(X,Y): (Y < 0) & ((X == 1) | (X == -1)) <-
+	move(n).
++!move_to(X,Y): (Y > 0) & ((X == 1) | (X == -1)) <-
+	move(s).
+-!move_to(X,Y): (X == 1) & (Y == 0) <- 
+	request(e).
+-!move_to(X,Y): (X == -1) & (Y == 0) <- 
+	request(w).
+-!move_to(X,Y): (X == 0) & (Y == 1) <- 
+	request(n).
+-!move_to(X,Y): (X == 0) & (Y == -1) <- 
+	request(s).
+
+
+// see a dispenser in distance
++thing(X, Y, Type, Details) : (Type == dispenser) &  not (X == 1) & not (Y == 0) & not attached(yes) <-
+	!move_to(X,Y);
+	.print("see a dispenser in distance").
++thing(X, Y, Type, Details) : (Type == dispenser) &  not (X == -1) & not (Y == 0) & not attached(yes) <-
+	!move_to(X,Y);
+	.print("see a dispenser in distance").
++thing(X, Y, Type, Details) : (Type == dispenser) &  not (X == 0) & not (Y == 1) & not attached(yes) <-
+	!move_to(X,Y);
+	.print("see a dispenser in distance").
++thing(X, Y, Type, Details) : (Type == dispenser) &  not (X == 0) & not (Y == -1) & not attached(yes) <-
+	!move_to(X,Y);
+	.print("see a dispenser in distance").
+
+// see a dispenser next to agent
++thing(X, Y, Type, Details) : (Type == dispenser) & (X == -1) & (Y == 0) & not attached(yes)<-
+	request(w);
+	.print("see a dispenser next to agent").
++thing(X, Y, Type, Details) : (Type == dispenser) & (X == 1) & (Y == 0) & not attached(yes)<-
+	request(e);
+	.print("see a dispenser next to agent").
++thing(X, Y, Type, Details) : (Type == dispenser) & (X == 0) & (Y == -1) & not attached(yes)<-
+	request(s);
+	.print("see a dispenser next to agent").
++thing(X, Y, Type, Details) : (Type == dispenser) & (X == 0) & (Y == 1) & not attached(yes)<-
+	request(n);
+	.print("see a dispenser next to agent").
+
+// attach a block
++thing(X, Y, Type, Details) : (Type == block) & (X == 1) & (Y == 0) & not attached(yes) <- 
+	attach(e);
+	+attached(yes);
+	.print("attach a block").
++thing(X, Y, Type, Details) : (Type == block) & (X == -1) & (Y == 0) & not attached(yes) <- 
+	attach(w);
+	+attached(yes);
+	-thing(X, Y, Type, Details);
+	.print("attach a block").
++thing(X, Y, Type, Details) : (Type == block) & (X == 0) & (Y == 1) & not attached(yes) <- 
+	attach(n);
+	+attached(yes);
+	-thing(X, Y, Type, Details);
+	.print("attach a block").          
++thing(X, Y, Type, Details) : (Type == block) & (X == 0) & (Y == -1) & not attached(yes) <- 
+	attach(s);
+	+attached(yes);
+	-thing(X, Y, Type, Details);
+	.print("attach a block").
++thing(X, Y, Type, Details) : true <- 
+	.print("see a thing: ",Type,",",Details).
+
++attached(Y): true <-
+	.random(RandomNumber);
+	!explore(RandomNumber).
+
+// agent see a goal
++thing(X, Y, Type, Details) : (Type == block) & (X == 0) & (Y == -1) & not attached(yes) <- 
+	attach(s);
+	+attached(yes);
+	-thing(X, Y, Type, Details);
+	.print("attach a block").
