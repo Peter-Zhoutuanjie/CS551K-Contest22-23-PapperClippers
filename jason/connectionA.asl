@@ -3,9 +3,9 @@
 { include("strategy/exploration.asl", exploration) }
 { include("strategy/task.asl", task) }
 /* Initial beliefs and rules */       
-location(0,0).
-exploration_mode(on).
-find_blocks(true).
+location(self,_,0,0).
+agent_mode(exploration).
+
 
 /* Initial goals */            
                            
@@ -15,145 +15,186 @@ find_blocks(true).
 
 +!start : true <- 
 	.print("hello massim world.").
-
-+actionID(X) : exploration_mode(on) <- 
+// agent explore the world
++actionID(X) : agent_mode(exploration) <- 
 	.random(RandomNumber);
 	!explore(RandomNumber).
 
-+actionID(ID) : exploration_mode(off) & block(Dir,Details) & goal_base(n,X,Y) <- 
-	.print("going to the goal postition nnnnnnnnnnn");
+// agent finds goal position
++actionID(ID) : location(goal_n,_,X,Y) & agent_mode(find_goal) <- 
+	.print("going to the goal postition nnnnnnnnnnn:",X,",",Y);
 	!move_on(X,Y).
-+actionID(ID) : exploration_mode(off) & block(Dir,Details) & goal_base(c,X,Y) <- 
-	.print("going to the goal postition ccccccccccc");
++actionID(ID) : location(goal_c,_,X,Y) & agent_mode(find_goal) <- 
+	.print("going to the goal postition ccccccccccc:",X,",",Y);
 	!move_on(X,Y).
+// the agent fetches a block
++actionID(ID) : agent_mode(find_blocks) <- 
+	.print("going to the goal postition ccccccccccc:",X,",",Y);
+	!find_blocks(b0).
+
+// the agent finds a block given a block type
++!find_blocks(Btype) : block(Dir,Btype) <-
+	true.
++!find_blocks(Btype) : block(Dir,Details) & not (Btype == Details)<-
+	!find_dispensers(Btype);
+	//!check_direction().
+	!request_block(Btype);
+	!attach_block(Btype).
 	
-// agent explore the world
+	
++!find_dispensers(Dtype) : location(dispenser,Dtype,X,Y) <-
+	!move_to(X,Y).
+// currently the agent doesn't know where the dispenser is, explore to find it
++!find_dispensers(Dtype) : not location(dispenser,Dtype,X,Y) <-
+	.random(RandomNumber); 
+	!explore(RandomNumber).
+
++!request_block(Btype) : location(dispenser,Btype,X,Y) & location(self,_,XX,YY) & (X-XX == -1) & (Y-YY == 0) & not location(block,Btype,X,Y)<-
+	request(w).
++!request_block(Btype) : location(dispenser,Btype,X,Y) & location(self,_,XX,YY) & (X-XX == 1) & (Y-YY == 0) & not location(block,Btype,X,Y)<-
+	request(e).
++!request_block(Btype) : location(dispenser,Btype,X,Y) & location(self,_,XX,YY) & (X-XX == 0) & (Y-YY == -1) & not location(block,Btype,X,Y)<-
+	request(s).
++!request_block(Btype) : location(dispenser,Btype,X,Y) & location(self,_,XX,YY) & (X-XX == 0) & (Y-YY == 1) & not location(block,Btype,X,Y)<-
+	request(n).
++!request_block(Btype) : location(dispenser,Btype,X,Y) & location(self,_,XX,YY) & (X-XX == -1) & (Y-YY == 0) & location(block,Btype,X,Y)<-
+	true.
++!request_block(Btype) : location(dispenser,Btype,X,Y) & location(self,_,XX,YY) & (X-XX == 1) & (Y-YY == 0) & location(block,Btype,X,Y)<-
+	true.
++!request_block(Btype) : location(dispenser,Btype,X,Y) & location(self,_,XX,YY) & (X-XX == 0) & (Y-YY == -1) & location(block,Btype,X,Y)<-
+	true.
++!request_block(Btype) : location(dispenser,Btype,X,Y) & location(self,_,XX,YY) & (X-XX == 0) & (Y-YY == 1) & location(block,Btype,X,Y)<-
+	true.
+
++!attach_block(Btype) : location(self,_,XX,YY) & location(block,Btype,X,Y) & (X-XX == -1) & (Y-YY == 0)<-
+	attach(w).
++!attach_block(Btype) : location(self,_,XX,YY) & location(block,Btype,X,Y) & (X-XX == 1) & (Y-YY == 0)<-
+	attach(e).
++!attach_block(Btype) : location(self,_,XX,YY) & location(block,Btype,X,Y) & (X-XX == 0) & (Y-YY == -1)<-
+	attach(s).
++!attach_block(Btype) : location(self,_,XX,YY) & location(block,Btype,X,Y) & (X-XX == 0) & (Y-YY == 1)<-
+	attach(n).
+	
 +!explore(RandomNumber): true<-
 	!move(RandomNumber);
 	.print("agent explore the world").
 
 +!move(RandomNumber): (RandomNumber<0.25) <-
-	+location(X,Y+1);
+	-+location(self,_,X,Y+1);
 	move(n);
 	.print("agent move north").
-+!move(RandomNumber): (RandomNumber>=0.25 & RandomNumber<0.5) & location(X,Y) <-
-	+location(X+1,Y);       
++!move(RandomNumber): (RandomNumber>=0.25 & RandomNumber<0.5) & location(self,_,X,Y) <-
+	-+location(self,_,X+1,Y);       
 	move(e);
 	.print("agent move east").
-+!move(RandomNumber): (RandomNumber>=0.5 & RandomNumber<0.75) & location(X,Y)<-
-	+location(X,Y-1);        
++!move(RandomNumber): (RandomNumber>=0.5 & RandomNumber<0.75) & location(self,_,X,Y)<-
+	-+location(self,_,X,Y-1);        
 	move(s);
 	.print("agent move south").
-+!move(RandomNumber): (RandomNumber>=0.75 & RandomNumber<1) & location(X,Y)<-
-	+location(X-1,Y); 
++!move(RandomNumber): (RandomNumber>=0.75 & RandomNumber<1) & location(self,_,X,Y)<-
+	-+location(self,_,X-1,Y); 
 	move(w);
 	.print("agent move west").
 
 	
 
-+!move_to(X,Y): (X < -1)<-
++!move_to(X,Y): location(self,_,XX,YY) & (X-XX < -1)<-
+	-+location(self,_,XX-1,YY); 
 	move(w).
-+!move_to(X,Y): (X > 1)<-
++!move_to(X,Y): location(self,_,XX,YY) & (X-XX > 1)<-
+	-+location(self,_,XX+1,YY);   
 	move(e).
-+!move_to(X,Y): (Y < 0) & ((X == 1) | (X == -1)) <-
++!move_to(X,Y): location(self,_,XX,YY) & (Y-YY < 0) & ((X-XX == 1) | (X-XX == -1)) <-
+	-+location(self,_,XX,YY+1);
 	move(n).
-+!move_to(X,Y): (Y > 0) & ((X == 1) | (X == -1)) <-
++!move_to(X,Y): location(self,_,XX,YY) & (Y-YY > 0) & ((X-XX == 1) | (X-XX == -1)) <-
+	-+location(self,_,XX,YY+1);
 	move(s).
-+!move_to(X,Y): (Y < -1)<-
++!move_to(X,Y): location(self,_,XX,YY) & (Y-YY < -1)<-
+	-+location(self,_,XX,YY+1);
 	move(s).
-+!move_to(X,Y): (Y > 1)<-
++!move_to(X,Y): location(self,_,XX,YY) & (Y-YY > 1)<-
+	-+location(self,_,XX,YY+1);
 	move(n).
-+!move_to(X,Y): (Y < 0) & ((X == 1) | (X == -1)) <-
++!move_to(X,Y): location(self,_,XX,YY) & (Y-YY < 0) & ((X-XX == 1) | (X-XX == -1)) <-
+	-+location(self,_,XX,YY+1);
 	move(n).
-+!move_to(X,Y): (Y > 0) & ((X == 1) | (X == -1)) <-
++!move_to(X,Y): location(self,_,XX,YY) & (Y-YY > 0) & ((X-XX == 1) | (X-XX == -1)) <-
+	-+location(self,_,XX,YY+1);
 	move(s).
--!move_to(X,Y): (X == 1) & (Y == 0) <- 
-	request(e).
--!move_to(X,Y): (X == -1) & (Y == 0) <- 
-	request(w).
--!move_to(X,Y): (X == 0) & (Y == 1) <- 
-	request(n).
--!move_to(X,Y): (X == 0) & (Y == -1) <- 
-	request(s).
 
-+!move_on(X,Y): (X < 0)<-
+// the agent must stop once it find the location
++!move_to(X,Y): location(self,_,XX,YY) & (Y-YY == 0) & ((X-XX == 1) | (X-XX == -1)) <-
+	true.
++!move_to(X,Y): location(self,_,XX,YY) & (X-XX == 0) & ((Y-YY == 1) | (Y-YY == -1)) <-
+	true.
+
++!move_on(X,Y): location(self,_,XX,YY) & (X-XX < 0)<-
+	-+location(self,se,YY); 
 	move(w).
-+!move_on(X,Y): (X > 0)<-
++!move_on(X,Y): location(self,_,XX,YY) & (X-XX > 0)<-
+	-+location(self,_,XX+1,YY);  
 	move(e).
-+!move_on(X,Y): (X == 0) & (Y > 0)<-
++!move_on(X,Y): location(self,_,XX,YY) & (X-XX == 0) & (Y-YY > 0)<-
+	-+location(self,_,XX,YY+1);
 	move(n).
-+!move_on(X,Y): (X == 0) & (Y < 0)<-
++!move_on(X,Y): location(self,_,XX,YY) & (X-XX == 0) & (Y-YY < 0)<-
+	-+location(self,_,XX,YY+1);
 	move(s).
-+!move_on(X,Y): (X == 0) & (Y == 0)<-
-	+exploration_mode(off).
++!move_on(X,Y): location(self,_,XX,YY) & (X-XX == 0) & (Y-YY == 0)<-
+	-agent_mode(find_goal).
 
-// see a dispenser in distance
-+thing(X, Y, Type, Details) : (Type == dispenser) &  not (X == 1) & not (Y == 0) & find_blocks(true) <-
-	!move_to(X,Y);
-	.print("see a dispenser in distance").
-+thing(X, Y, Type, Details) : (Type == dispenser) &  not (X == -1) & not (Y == 0) & find_blocks(true) <-
-	!move_to(X,Y);
-	.print("see a dispenser in distance").
-+thing(X, Y, Type, Details) : (Type == dispenser) &  not (X == 0) & not (Y == 1) & find_blocks(true) <-
-	!move_to(X,Y);
-	.print("see a dispenser in distance").
-+thing(X, Y, Type, Details) : (Type == dispenser) &  not (X == 0) & not (Y == -1) & find_blocks(true) <-
-	!move_to(X,Y);
-	.print("see a dispenser in distance").
+// see a thing
++thing(X, Y, Type, Details) : location(self,_,XX,YY)<-
+	+location(Type,Details,XX+X,YY+Y);
+	.print("the agent sees a ",Type,",",Details).
 
-// see a dispenser next to agent
-+thing(X, Y, Type, Details) : (Type == dispenser) & (X == -1) & (Y == 0) & find_blocks(true)<-
-	request(w);
-	.print("see a dispenser next to agent").
-+thing(X, Y, Type, Details) : (Type == dispenser) & (X == 1) & (Y == 0) & find_blocks(true)<-
-	request(e);
-	.print("see a dispenser next to agent").
-+thing(X, Y, Type, Details) : (Type == dispenser) & (X == 0) & (Y == -1) & find_blocks(true)<-
-	request(s);
-	.print("see a dispenser next to agent").
-+thing(X, Y, Type, Details) : (Type == dispenser) & (X == 0) & (Y == 1) & find_blocks(true)<-
-	request(n);
-	.print("see a dispenser next to agent").
 
 // attach a block
-+thing(X, Y, Type, Details) : (Type == block) & (X == 1) & (Y == 0) & find_blocks(true) <- 
++thing(X, Y, Type, Details) : (Type == block) & (X == 1) & (Y == 0) & agent_mode(find_blocks) <- 
 	attach(e);
-	-+find_blocks(false);
+	-+agent_mode(find_goal);
 	+block(e,Details);
 	.print("attach a block").
-+thing(X, Y, Type, Details) : (Type == block) & (X == -1) & (Y == 0) & find_blocks(true) <- 
++thing(X, Y, Type, Details) : (Type == block) & (X == -1) & (Y == 0) & agent_mode(find_blocks) <- 
 	attach(w);
-	-+find_blocks(false);
+	-+agent_mode(find_goal);
 	+block(w,Details);
 	-thing(X, Y, Type, Details);
 	.print("attach a block").
-+thing(X, Y, Type, Details) : (Type == block) & (X == 0) & (Y == 1) & find_blocks(true) <- 
++thing(X, Y, Type, Details) : (Type == block) & (X == 0) & (Y == 1) & agent_mode(find_blocks) <- 
 	attach(n);
-	-+find_blocks(false);
+	-+agent_mode(find_goal);
 	+block(n,Details);
-	-thing(X, Y, Type, Details);
 	.print("attach a block").          
-+thing(X, Y, Type, Details) : (Type == block) & (X == 0) & (Y == -1) & find_blocks(true) <- 
++thing(X, Y, Type, Details) : (Type == block) & (X == 0) & (Y == -1) & agent_mode(find_blocks) <- 
 	attach(s);
-	-+find_blocks(false);
+	-+agent_mode(find_goal);
 	+block(s,Details);
-	-thing(X, Y, Type, Details);
 	.print("attach a block").
 
 +attached(Y): true <-
-	-+exploration_mode(on).
+	-+agent_mode(exploration).
 
 // agent see a goal
-+goal(X,Y): block(Dir,Details)<-  
++goal(X,Y): holding_block(Dir,Details)<-  
 	-+exploration_mode(off);
-	+goal_base(n,X,Y).
+	+location(goal_n,_,XX+X,YY+Y).
 
-+goal_base(Pos,X,Y): goal_base(Pos,X,Y) & goal_base(Pos,X-1,Y)<-
-	-+goal_base(c,X-1,Y).
-+goal_base(Pos,X,Y): goal_base(Pos,X,Y) & goal_base(Pos,X+1,Y)<-
-	-+goal_base(c,X+1,Y).
-+goal_base(Pos,X,Y): goal_base(Pos,X,Y) & goal_base(Pos,X,Y-1)<-
-	-+goal_base(c,X,Y-1).
-+goal_base(Pos,X,Y): goal_base(Pos,X,Y) & goal_base(Pos,X,Y+1)<-
-	-+goal_base(c,X,Y+1).
++location(Thing,_,X,Y): location(goal_n,_,X,Y) & location(goal_n,_,X-1,Y)<-
+	+location(goal_c,X-1,Y).
++location(Thing,_,X,Y): location(goal_n,_,X,Y) & location(goal_n,_,X+1,Y)<-
+	+location(goal_c,X+1,Y).
++location(Thing,_,X,Y): location(goal_n,_,X,Y) & location(goal_n,_,X,Y-1)<-
+	+location(goal_c,X,Y-1).
++location(Thing,_,X,Y): location(goal_n,_,X,Y) & location(goal_n,_,X,Y+1)<-
+	+location(goal_c,X,Y+1).
 
++task(N, D, R, Req) : (.length(Req) == 1) <-
+	//-+agent_mode(find_blocks);
+	-+current_task(N, D, R, Req);
+	.member(V,Req);
+	//.length(V,Len);
+	.type(V,T);
+	.print("the agent receives a task=",T);
+	.
