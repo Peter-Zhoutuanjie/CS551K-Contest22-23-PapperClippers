@@ -829,7 +829,7 @@ get_next_goal(X,Y) :-  dispenser_queue(GQ) & .min(GQ,GSeq) & location(goal,_,X,Y
 	}elif(V == w){
 		-+agent_location(MyN,MyX+1,MyY);
 	};
-	!discover_stock(Dtype,X,Y);
+	-+agent_mode(exploration);
 	.time(H,M,S,MS); 	.print("[",H,":",M,":",S,":",MS,"] ","---find_blocks---------lastaction failed:",V)
 	.
 @move_find_goal[atomic]
@@ -844,6 +844,7 @@ get_next_goal(X,Y) :-  dispenser_queue(GQ) & .min(GQ,GSeq) & location(goal,_,X,Y
 	}elif(V == w){
 		-+agent_location(MyN,MyX+1,MyY);
 	};
+	-+agent_mode(exploration);
 	.time(H,M,S,MS); 	.print("[",H,":",M,":",S,":",MS,"] ","---find_goal---------lastaction failed:",V)
 	.
 @move_exploration_failed_forbidden[atomic]
