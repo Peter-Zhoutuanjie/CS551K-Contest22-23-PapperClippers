@@ -78,16 +78,15 @@ public class EISAdapter extends Environment implements AgentListener {
 
     @Override
     public List<Literal> getPercepts(String agName) {
-
         Collection<Literal> ps = super.getPercepts(agName);
         List<Literal> percepts = ps == null? new ArrayList<>() : new ArrayList<>(ps);
 
         clearPercepts(agName);
-
         if (ei != null) {
             try {
                 Map<String,Collection<Percept>> perMap = ei.getAllPercepts(agName);
                 for (String entity: perMap.keySet()) {
+
                     Structure strcEnt = ASSyntax.createStructure("entity", ASSyntax.createAtom(entity));
                     for (Percept p: perMap.get(entity)) {
                         try {
@@ -101,7 +100,46 @@ public class EISAdapter extends Environment implements AgentListener {
                 logger.log(Level.WARNING, "Could not perceive.");
             }
         }
-        return percepts;
+        LinkedList<Literal> firstList = new LinkedList<Literal>();
+        LinkedList<Literal> lastList = new LinkedList<Literal>();
+        LinkedList<Literal> otherlist = new LinkedList<Literal>();
+        ArrayList<Literal> alllist = new ArrayList<Literal>();
+        for (Literal percept : percepts) {
+            if ("lastActionParams".equals(percept.getFunctor())) {
+                firstList.addFirst(percept);
+            }
+            if ("lastActionResult".equals(percept.getFunctor())) {
+                firstList.add(percept);
+            }
+            if ("lastAction".equals(percept.getFunctor())) {
+                firstList.addLast(percept);
+            }
+            if ("actionID".equals(percept.getFunctor())) {
+                lastList.addLast(percept);
+            }
+            otherlist.add(percept);
+        }
+        alllist.addAll(firstList);
+        alllist.addAll(otherlist);
+        alllist.addAll(lastList);
+        return alllist;
+    }
+
+    public void getFirstPercepts(Map<String,Percept> pcMap,List<Literal> percepts,Structure strcEnt){
+        try{
+            Percept lastActionParams = pcMap.get("lastActionParams");
+            Percept lastActionResult = pcMap.get("lastActionResult");
+            Percept lastAction = pcMap.get("lastAction");
+            percepts.add(perceptToLiteral(lastActionParams).addAnnots(strcEnt));
+            percepts.add(perceptToLiteral(lastActionResult).addAnnots(strcEnt));
+            percepts.add(perceptToLiteral(lastAction).addAnnots(strcEnt));
+        } catch (java.lang.NullPointerException e) {
+            e.printStackTrace();
+        } catch (JasonException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
