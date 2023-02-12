@@ -121,9 +121,6 @@ get_next_goal(X,Y) :-  dispenser_queue(GQ) & .min(GQ,GSeq) & location(goal,_,X,Y
 +!action_pipe : agent_mode(exploration)<- 
 	!explore;
 	.
-+!action_pipe : agent_mode(submitted)<- 
-	skip;
-	.
 
 // the agent fetches a block
 +!action_pipe : stock(Btype,X,Y) &  agent_mode(find_blocks) <-
@@ -166,6 +163,7 @@ get_next_goal(X,Y) :-  dispenser_queue(GQ) & .min(GQ,GSeq) & location(goal,_,X,Y
 +!move_random_point: location(goal,_,GoalX,GoalY,_) & agent_location(MyN,MyX,MyY) & task_base(N, D, R,TX,TY,B) & block(Bdir,B) & not current_task(_,_,_,_,_,_) & not conflict_task(N)<-
 	.time(H,M,S,MS); 	.print("[",H,":",M,":",S,":",MS,"] ","the agent receive a new task ",N,",D=", D,",R=", R,",B=", B,",X=", TX,",Y=",TY);
 	.broadcast(tell,conflict_task(N));
+	-task_base(N, D, R,TX,TY,B);
 	+current_task(N, D, R,TX,TY, B);
 	-+agent_mode(find_goal);
 	.print("[",H,":",M,":",S,":",MS,"] ","5--------------------------- agent start task=",N);
@@ -220,8 +218,9 @@ get_next_goal(X,Y) :-  dispenser_queue(GQ) & .min(GQ,GSeq) & location(goal,_,X,Y
 	-current_task(_, _, _,_,_, _);
 	-block(CurrentDir,B);
 	+ava_dir(CurrentDir);
-	-+agent_mode(submitted);
 	submit(N);
+	-+agent_mode(exploration);
+	!stock;
 	.time(H,M,S,MS); 	.print("[",H,":",M,":",S,":",MS,"] ","agent submit the task=",N,",CurrentDir=",CurrentDir);
 	.
 
@@ -684,7 +683,7 @@ get_next_goal(X,Y) :-  dispenser_queue(GQ) & .min(GQ,GSeq) & location(goal,_,X,Y
 +thing(X, Y, dispenser, Details) : agent_location(MyN,MyX,MyY) & not location(dispenser,Details,(MyX+X),(MyY+Y),DSeq) & dispenser_queue(DQ)<-
 	.time(H,M,S,MS);
 	.type(DQ,T);
-	.print("[",H,":",M,":",S,":",MS,"] ","the agent sees a dispenser",",Details=",Details,",X=",X,",Y=",Y,",DQ=",DQ,",T=",T);
+	.print("[",H,":",M,":",S,":",MS,"] ","the agent sees a dispenser",",Details=",Details,",X=",X,",Y=",Y);
 	.print("[",H,":",M,":",S,":",MS,"] ","the agent sees a dispenser",",Details=",Details,",MyX=",MyX,",MyY=",MyY);
 	.print("[",H,":",M,":",S,":",MS,"] ","the agent sees a dispenser",",Details=",Details,",(MyX+X)=",(MyX+X),",(MyY+Y)=",(MyY+Y));
 	
@@ -753,6 +752,7 @@ get_next_goal(X,Y) :-  dispenser_queue(GQ) & .min(GQ,GSeq) & location(goal,_,X,Y
 	.print("[",H,":",M,":",S,":",MS,"] ","the agent sees a goal1:",X,",",Y);
 	
 	.broadcast(tell,conflict_task(N));
+	-task_base(N, D, R,TX,TY,B);
 	+current_task(N, D, R,TX,TY, B);
 	-+agent_mode(find_goal);
 	.print("[",H,":",M,":",S,":",MS,"] ","1--------------------------- agent start task=",N);
@@ -762,6 +762,7 @@ get_next_goal(X,Y) :-  dispenser_queue(GQ) & .min(GQ,GSeq) & location(goal,_,X,Y
 +have_block(Dir,B) : location(goal,_,GoalX,GoalY,_) & task_base(N, D, R,TX,TY,B) & block(Dir,B) & not current_task(_,_,_,_,_,_) & not conflict_task(N)<-
 	
 	.broadcast(tell,conflict_task(N));
+	-task_base(N, D, R,TX,TY,B);
 	+current_task(N, D, R,TX,TY, B);
 	-+agent_mode(find_goal);
 	.time(H,M,S,MS);
@@ -778,6 +779,7 @@ get_next_goal(X,Y) :-  dispenser_queue(GQ) & .min(GQ,GSeq) & location(goal,_,X,Y
 +task_base(N, D, R,TX,TY,B) : location(goal,_,GoalX,GoalY,_) & block(Dir,B) & not current_task(_,_,_,_,_,_) & not conflict_task(N)<-
 	.time(H,M,S,MS); 	.print("[",H,":",M,":",S,":",MS,"] ","the agent receive a new task ",N,",D=", D,",R=", R,",B=", B,",X=", TX,",Y=",TY);
 	.broadcast(tell,conflict_task(N));
+	-task_base(N, D, R,TX,TY,B);
 	+current_task(N, D, R,TX,TY, B);
 	-+agent_mode(find_goal);
 	.print("[",H,":",M,":",S,":",MS,"] ","4--------------------------- agent start task=",N);
@@ -801,10 +803,37 @@ get_next_goal(X,Y) :-  dispenser_queue(GQ) & .min(GQ,GSeq) & location(goal,_,X,Y
 //		.time(H,M,S,MS); 	.print("[",H,":",M,":",S,":",MS,"] ","the agent sees an obstacle :");
 //	};
 //	.
-
-@move_exploration[atomic]
-+lastAction(move) : agent_mode(exploration) & lastActionResult(failed_path) & lastActionParams(Params) & agent_location(MyN,MyX,MyY) & .random(R1) & .random(R2) & .random(R3) & get_random_pointX(R1,X1) & get_random_pointY(R2,R3,X1,X,Y)<-
++lastAction(Action) : lastActionResult(Result)<-
+	if(Action == attach & Result == failed){
+		!attach_failed;
+	}elif(Action == attach & Result == failed_target){
+		!attach_failed_target;
+	}elif(Action == request & Result == failed_blocked){
+		!request_failed_blocked;
+	};
+	.
++lastAction(Action) : lastActionResult(Result) & lastActionParams(Params)<-
+	if(Action == rotate & Result == failed){
+		!rotate_failed(Params)
+	}elif(Action == attach & Result == failed){
+		!attach_failed;
+	}elif(Action == attach & Result == failed_target){
+		!attach_failed_target;
+	}elif(Action == request & Result == failed_blocked){
+		!request_failed_blocked;
+	}elif(Action == submit & Result == failed){
+	  !submit_failed(Params);
+	}elif(Action == submit & Result == success){
+	  !submit_success(Params);
+	}elif(Action == move & Result == failed_forbidden){
+		!move_exploration_failed_forbidden(Params);
+	}elif(Action == move & Result == failed_path){
+		!move_failed_path(Params);
+	};
+	.
++!move_failed_path(Params): agent_mode(exploration) & agent_location(MyN,MyX,MyY) & .random(R1) & .random(R2) & .random(R3) & get_random_pointX(R1,X1) & get_random_pointY(R2,R3,X1,X,Y) <-
 	.member(V,Params);
+	.time(H,M,S,MS); 	.print("[",H,":",M,":",S,":",MS,"] ","------------lastaction failed:",V);
 	if(V == n){
 		-+agent_location(MyN,MyX,MyY+1);
 	}elif(V == e){
@@ -815,11 +844,11 @@ get_next_goal(X,Y) :-  dispenser_queue(GQ) & .min(GQ,GSeq) & location(goal,_,X,Y
 		-+agent_location(MyN,MyX+1,MyY);
 	};
 	-+random_point(X+MyX,Y+MyY);
-	.time(H,M,S,MS); 	.print("[",H,":",M,":",S,":",MS,"] ","------------lastaction failed:",V)
 	.
-@move_find_blocks[atomic]
-+lastAction(move) : agent_mode(find_blocks) & get_next_dispenser(Dtype,X,Y) & lastActionResult(failed_path) & lastActionParams(Params) & agent_location(MyN,MyX,MyY)<-
++!move_failed_path(Params) : agent_mode(find_blocks) & agent_location(MyN,MyX,MyY) & location(diispenser,Dtype,X,Y,DSeq) & stock(_,X2,Y2) & not X == X2 & not Y == Y2<-
 	.member(V,Params);
+	.time(H,M,S,MS); 	.print("[",H,":",M,":",S,":",MS,"] ","---find_blocks---------lastaction failed:",V);
+
 	if(V == n){
 		-+agent_location(MyN,MyX,MyY+1);
 	}elif(V == e){
@@ -829,12 +858,12 @@ get_next_goal(X,Y) :-  dispenser_queue(GQ) & .min(GQ,GSeq) & location(goal,_,X,Y
 	}elif(V == w){
 		-+agent_location(MyN,MyX+1,MyY);
 	};
-	-+agent_mode(exploration);
-	.time(H,M,S,MS); 	.print("[",H,":",M,":",S,":",MS,"] ","---find_blocks---------lastaction failed:",V)
+	!discover_stock(Dtype,X,Y);
 	.
-@move_find_goal[atomic]
-+lastAction(move) : agent_mode(find_goal) & lastActionResult(failed_path) & lastActionParams(Params) & agent_location(MyN,MyX,MyY)<-
++!move_failed_path(Params): agent_mode(find_goal) & agent_location(MyN,MyX,MyY) & location(goal,_,Goalx,GoalY,GSeq)<-
 	.member(V,Params);
+	.time(H,M,S,MS); 	.print("[",H,":",M,":",S,":",MS,"] ","---find_goal---------lastaction failed:",V);
+
 	if(V == n){
 		-+agent_location(MyN,MyX,MyY+1);
 	}elif(V == e){
@@ -844,12 +873,13 @@ get_next_goal(X,Y) :-  dispenser_queue(GQ) & .min(GQ,GSeq) & location(goal,_,X,Y
 	}elif(V == w){
 		-+agent_location(MyN,MyX+1,MyY);
 	};
-	-+agent_mode(exploration);
-	.time(H,M,S,MS); 	.print("[",H,":",M,":",S,":",MS,"] ","---find_goal---------lastaction failed:",V)
+	-location(goal,_,Goalx,GoalY,GSeq);
+	-location(goal,task,Goalx,GoalY,GSeq);
 	.
-@move_exploration_failed_forbidden[atomic]
-+lastAction(move) : agent_mode(exploration) & lastActionResult(failed_forbidden) & lastActionParams(Params) & agent_location(MyN,MyX,MyY) & .random(R1) & .random(R2) & .random(R3) & get_random_pointX(R1,X1) & get_random_pointY(R2,R3,X1,X,Y)<-
++!move_exploration_failed_forbidden(Params): agent_mode(exploration) & agent_location(MyN,MyX,MyY) & .random(R1) & .random(R2) & .random(R3) & get_random_pointX(R1,X1) & get_random_pointY(R2,R3,X1,X,Y)<-
 	.member(V,Params);
+	.time(H,M,S,MS); 	.print("[",H,":",M,":",S,":",MS,"] ","agent reached the boundary:",V);
+
 	if(V == n){
 		+boundary(n,MyY);
 		-+agent_location(MyN,MyX,MyY+1);
@@ -864,48 +894,52 @@ get_next_goal(X,Y) :-  dispenser_queue(GQ) & .min(GQ,GSeq) & location(goal,_,X,Y
 		-+agent_location(MyN,MyX+1,MyY);
 	};
 	-+random_point(X+MyX,Y+MyY);
-	.time(H,M,S,MS); 	.print("[",H,":",M,":",S,":",MS,"] ","agent reached the boundary:",V)
 	.
-@submit_success[atomic]
-+lastAction(submit) : lastActionResult(success) & lastActionParams(Params) & .member(N,Params)<-
++!submit_success(Params): true <-
+	.member(N,Params);
 	.time(H,M,S,MS); 	.print("[",H,":",M,":",S,":",MS,"] ","agent submit task success--------------------N=",N);
-	-task_base(N, D, R,TX,TY, B);
+
+	-current_task(_,_,_,_,_,_);
 	-+agent_mode(exploration);
 	!stock;
 	.
-@submit_failed[atomic]
-+lastAction(submit) : lastActionResult(failed) & lastActionParams(Params) & .member(N,Params) & task_base(N, D, R,TX,TY, B) & get_dir(TX,TY,Dir) & block(Dir,B)<-
 	
++!submit_failed(Params): .member(N,Params) & current_task(N, D, R,TX,TY, B) & get_dir(TX,TY,Dir) & block(Dir,B)<-
 	.time(H,M,S,MS); 	.print("[",H,":",M,":",S,":",MS,"] ","agent submit task failed--------------------N=",N);
-	-task_base(N, D, R,TX,TY, B);
+	-current_task(N, D, R,TX,TY, B);
 	+block(Dir,B);
 	-ava_dir(Dir);
 	-+agent_mode(exploration);
 	!stock;
 	.
-@request_failed_blocked[atomic]
-+lastAction(request) : lastActionResult(failed_blocked) <-
++!request_failed_blocked: true<-
 	.time(H,M,S,MS); 	.print("[",H,":",M,":",S,":",MS,"] ","agent request failed-------failed_blocked-------------");
 	-+agent_mode(exploration);
+	-stock(_,_,_);
+	-current_task(_,_,_,_,_,_);
 	.
-@request_failed_target[atomic]
-+lastAction(request) : lastActionResult(failed_target) <-
++!request_failed_target: true <-
 	.time(H,M,S,MS); 	.print("[",H,":",M,":",S,":",MS,"] ","agent request failed--------failed_target------------");
 	-+agent_mode(exploration);
+	-stock(_,_,_);
+	-current_task(_,_,_,_,_,_);
 	.
-@attach_failed_target[atomic]
-+lastAction(attach) : lastActionResult(failed_target) <-
++!attach_failed_target:true<-
 	.time(H,M,S,MS); 	.print("[",H,":",M,":",S,":",MS,"] ","agent attach failed-------failed_target-------------");
 	-+agent_mode(exploration);
+	-stock(_,_,_);
+	-current_task(_,_,_,_,_,_);
 	.
-@attach_failed[atomic]
-+lastAction(attach) : lastActionResult(failed) <-
++!attach_failed: true<-
 	.time(H,M,S,MS); 	.print("[",H,":",M,":",S,":",MS,"] ","agent attach failed--------failed------------");
 	-+agent_mode(exploration);
+	-stock(_,_,_);
+	-current_task(_,_,_,_,_,_);
 	.
-@rotate_failed[atomic]
-+lastAction(rotate) : lastActionResult(failed) & lastActionParams(Params) & .member(Rdir,Params)<-
++!rotate_failed(Params): true<-
+	.member(Rdir,Params);
 	.time(H,M,S,MS); 	.print("[",H,":",M,":",S,":",MS,"] ","agent rotate failed--------failed------------");
+
 	if(Rdir == cw){
 		!update_block_dir(ccw);
 	}elif(Rdir == ccw){
