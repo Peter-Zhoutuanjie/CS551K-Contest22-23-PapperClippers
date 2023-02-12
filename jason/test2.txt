@@ -1,8 +1,0 @@
-+lastActionResult(Result):(Result == failed_path) & lastActionParams([n])<-
-	move(e).
-+lastActionResult(Result):(Result == failed_path) & lastActionParams([e])<-
-	move(s).
-+lastActionResult(Result):(Result == failed_path) & lastActionParams([s])<-
-	move(w).
-+lastActionResult(Result):(Result == failed_path) & lastActionParams([w])<-
-	move(n).
